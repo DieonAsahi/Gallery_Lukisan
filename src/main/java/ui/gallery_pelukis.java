@@ -2,8 +2,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
-package Gui;
+package ui;
 
+import java.awt.BorderLayout;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
@@ -16,8 +18,14 @@ public class gallery_pelukis extends javax.swing.JFrame {
      * Creates new form Dashboard
      */
     public gallery_pelukis() {
-        initComponents();
-    }
+    initComponents();
+    setExtendedState(JFrame.MAXIMIZED_BOTH);
+    setLocationRelativeTo(null);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    getContentPane().setLayout(new BorderLayout());
+    getContentPane().add(jPanel1, BorderLayout.CENTER);
+}
 
     /**
      * This method is called from within the constructor to initialize the form.
