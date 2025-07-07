@@ -1,8 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package ui;
+
+import com.mysql.cj.Session;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.Locale;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import object.FontSetting;
+import object.LanguageManager;
+import object.SessionManager;
+import object.User;
+import object.config;
+import object.LanguageUpdateListener;
 
 /**
  *
@@ -13,8 +24,101 @@ public class profil extends javax.swing.JFrame {
     /**
      * Creates new form tambah_lukisan
      */
+    private User user;
+    private LanguageUpdateListener languageUpdateListener; // ✅ Ganti dari dashboardRef
+
     public profil() {
         initComponents();
+        applyFont();
+        applyLanguage();
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        this.user = SessionManager.get();
+        tampilkanDataUser();
+
+        cmbChooseLanguage.addActionListener(e -> {
+            int lang = cmbChooseLanguage.getSelectedIndex();
+            String language = (lang == 1) ? "id" : "en"; // 0 = en, 1 = id
+            SessionManager.setLanguage(language);
+            applyLanguage();
+
+            // ✅ Beri tahu listener jika ada
+            if (languageUpdateListener != null) {
+                languageUpdateListener.updateLanguage();
+            }
+        });
+    }
+
+    // ✅ Konstruktor baru agar bisa dipanggil dari siapa saja
+    public profil(LanguageUpdateListener listener) {
+        this(); // Panggil konstruktor utama
+        this.languageUpdateListener = listener;
+    }
+
+    private void tampilkanDataUser() {
+        if (user != null) {
+            txtName.setText(user.getName());
+            txtUsername.setText(user.getUsername());
+        }
+    }
+
+    private void applyFont() {
+        try {
+            FontSetting fs = new FontSetting("Code2000", 1, 14);
+            fs.selectContainer(getContentPane());
+        } catch (Exception e) {
+            System.err.println("" + e.getMessage());
+        }
+    }
+
+    private void applyLanguage() {
+        String language;
+        String country;
+        Locale locale;
+
+        // Ambil dari SessionManager, jika belum ada pakai default
+        language = SessionManager.getLanguage();
+        country = language.equals("id") ? "ID" : "US";
+
+        try {
+
+            // Set ke Locale
+            locale = new Locale(language, country);
+            ResourceBundle rb = ResourceBundle.getBundle("localization/Bundle", locale);
+
+            // ✅ Simpan ke user yang sedang login
+//            User currentUser = SessionManager.get();
+//            if (currentUser != null) {
+//                currentUser.setBahasa(language);
+//                // Optional: update session language juga
+//                // SessionManager.setLanguage(language); // jika kamu punya
+//            }
+//
+//            // ✅ Simpan juga ke LanguageManager
+//            LanguageManager.init(SessionManager.get().getBahasa());
+//            ResourceBundle rb = LanguageManager.getBundle();
+            // Update UI
+            lblChooseLanguage.setText(rb.getString("lblChooseLanguage.text"));
+            lblUsername.setText(rb.getString("lblUsername.text"));
+            lblPassword.setText(rb.getString("lblPassword.text"));
+            lblbatal.setText(rb.getString("lblbatal.text"));
+            lblnama.setText(rb.getString("lblnama.text"));
+            jsimpan.setText(rb.getString("jsimpan.text"));
+            lblprofil.setText(rb.getString("lblprofil.text"));
+            setTitle(rb.getString("Profil.title"));
+
+            // Perbarui pilihan bahasa di combo box
+            cmbChooseLanguage.removeAllItems();
+            cmbChooseLanguage.addItem(rb.getString("cmbChooseLanguage.0")); // English
+            cmbChooseLanguage.addItem(rb.getString("cmbChooseLanguage.1")); // Indonesian
+            cmbChooseLanguage.setSelectedIndex(language.equals("id") ? 1 : 0);
+
+        } catch (MissingResourceException e) {
+            System.err.println("Missing key: " + e.getKey());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -27,96 +131,109 @@ public class profil extends javax.swing.JFrame {
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        jTextField2 = new javax.swing.JTextField();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jComboBox1 = new javax.swing.JComboBox<>();
-        jLabel6 = new javax.swing.JLabel();
-        jButton4 = new javax.swing.JButton();
+        lblprofil = new javax.swing.JLabel();
+        lblUsername = new javax.swing.JLabel();
+        txtUsername = new javax.swing.JTextField();
+        lblPassword = new javax.swing.JLabel();
+        txtPassword = new javax.swing.JTextField();
+        lblbatal = new javax.swing.JButton();
+        cmbChooseLanguage = new javax.swing.JComboBox<>();
+        lblChooseLanguage = new javax.swing.JLabel();
+        jsimpan = new javax.swing.JButton();
+        lblnama = new javax.swing.JLabel();
+        txtName = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel1.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
-        jLabel1.setText("Profil");
+        lblprofil.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+        lblprofil.setText("Profil");
 
-        jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        jLabel2.setText("Username");
+        lblUsername.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        lblUsername.setText("Username");
 
-        jLabel3.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        jLabel3.setText("Password");
+        lblPassword.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        lblPassword.setText("Password");
 
-        jButton2.setText("Edit Password");
+        lblbatal.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        lblbatal.setText("Batal");
+        lblbatal.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                lblbatalActionPerformed(evt);
+            }
+        });
 
-        jButton3.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        jButton3.setText("Batal");
+        cmbChooseLanguage.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Indonesia", "Inggris" }));
+        cmbChooseLanguage.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cmbChooseLanguageActionPerformed(evt);
+            }
+        });
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Indonesia", "Inggris" }));
+        lblChooseLanguage.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        lblChooseLanguage.setText("ChooseLanguage");
 
-        jLabel6.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        jLabel6.setText("Pilih Bahasa");
+        jsimpan.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        jsimpan.setText("Simpan");
+        jsimpan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jsimpanActionPerformed(evt);
+            }
+        });
 
-        jButton4.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        jButton4.setText("Simpan");
+        lblnama.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        lblnama.setText("Name");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(167, 167, 167)
+                .addComponent(lblprofil)
+                .addContainerGap(212, Short.MAX_VALUE))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(30, 30, 30)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(167, 167, 167)
-                        .addComponent(jLabel1))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(30, 30, 30)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabel2)
-                                .addGap(27, 27, 27))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabel3)
-                                .addGap(31, 31, 31))
-                            .addComponent(jLabel6)
-                            .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(19, 19, 19)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(jTextField2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 212, Short.MAX_VALUE)
-                                    .addComponent(jTextField1, javax.swing.GroupLayout.Alignment.TRAILING))
-                                .addComponent(jButton2, javax.swing.GroupLayout.Alignment.TRAILING))
-                            .addComponent(jButton4))))
-                .addContainerGap(33, Short.MAX_VALUE))
+                    .addComponent(lblbatal, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblUsername)
+                    .addComponent(lblnama)
+                    .addComponent(lblChooseLanguage)
+                    .addComponent(lblPassword))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(cmbChooseLanguage, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jsimpan, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(txtPassword, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtUsername, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtName, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(32, 32, 32))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(19, 19, 19)
-                .addComponent(jLabel1)
-                .addGap(48, 48, 48)
+                .addComponent(lblprofil)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 59, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(lblnama)
+                    .addComponent(txtName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton2)
-                .addGap(13, 13, 13)
+                    .addComponent(lblUsername)
+                    .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel6)
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 45, Short.MAX_VALUE)
+                    .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblPassword))
+                .addGap(21, 21, 21)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton3)
-                    .addComponent(jButton4))
-                .addGap(26, 26, 26))
+                    .addComponent(cmbChooseLanguage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblChooseLanguage))
+                .addGap(72, 72, 72)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jsimpan)
+                    .addComponent(lblbatal))
+                .addGap(47, 47, 47))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -127,13 +244,67 @@ public class profil extends javax.swing.JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void cmbChooseLanguageActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbChooseLanguageActionPerformed
+        applyLanguage();
+    }//GEN-LAST:event_cmbChooseLanguageActionPerformed
+
+    private void jsimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jsimpanActionPerformed
+        String nama = txtName.getText().trim();
+        String username = txtUsername.getText().trim();
+        String password = txtPassword.getText().trim();
+
+        if (nama.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Semua field harus diisi!");
+            return;
+        }
+
+        try (Connection conn = config.configDB()) {
+            String sql = "UPDATE users SET nama = ?, username = ?, password = ? WHERE username = ?";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            pst.setString(1, nama);
+            pst.setString(2, username);
+            pst.setString(3, object.HashUtil.hashPassword(password));
+            pst.setString(4, user.getUsername());
+
+            int updated = pst.executeUpdate();
+
+            if (updated > 0) {
+                user.setName(nama);
+                user.setUsername(username);
+                user.setPassword(password);
+                SessionManager.set(user);
+
+                // ✅ Simpan bahasa baru ke session
+                String selectedLang = cmbChooseLanguage.getSelectedIndex() == 1 ? "id" : "en";
+                SessionManager.setLanguage(selectedLang);
+
+                // ✅ Panggil dashboard untuk update tampilan bahasa
+                if (languageUpdateListener != null) {
+                    languageUpdateListener.updateLanguage();
+                }
+
+                JOptionPane.showMessageDialog(this, "Data berhasil diperbarui!");
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Gagal memperbarui profil.");
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+        }
+
+    }//GEN-LAST:event_jsimpanActionPerformed
+
+    private void lblbatalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lblbatalActionPerformed
+        dispose(); // Menutup jendela form profil
+
+    }//GEN-LAST:event_lblbatalActionPerformed
 
     /**
      * @param args the command line arguments
@@ -172,16 +343,17 @@ public class profil extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JComboBox<String> jComboBox1;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel6;
+    private javax.swing.JComboBox<String> cmbChooseLanguage;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
+    private javax.swing.JButton jsimpan;
+    private javax.swing.JLabel lblChooseLanguage;
+    private javax.swing.JLabel lblPassword;
+    private javax.swing.JLabel lblUsername;
+    private javax.swing.JButton lblbatal;
+    private javax.swing.JLabel lblnama;
+    private javax.swing.JLabel lblprofil;
+    private javax.swing.JTextField txtName;
+    private javax.swing.JTextField txtPassword;
+    private javax.swing.JTextField txtUsername;
     // End of variables declaration//GEN-END:variables
 }

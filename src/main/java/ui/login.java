@@ -14,6 +14,7 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
+import object.SessionManager;
 
 /**
  *
@@ -29,7 +30,21 @@ public class login extends javax.swing.JFrame {
         setLocationRelativeTo(null);  // Tampilkan di tengah layar
         setResizable(false);          // Nonaktifkan resize
         applyFont();
+
+        // Tambahan: Pastikan combo box sesuai bahasa session
+        int savedLangIndex = SessionManager.getLanguage().equals("id") ? 1 : 0;
+        cmbChooseLanguage.setSelectedIndex(savedLangIndex);
+
         applyLanguage();
+    }
+
+    login(User up) {
+        initComponents();
+
+        // Tampilkan nama pengguna
+        if (up != null) {
+            JOptionPane.showMessageDialog(this, "Selamat datang, " + up.getName());
+        }
     }
 
     private void applyFont() {
@@ -40,57 +55,65 @@ public class login extends javax.swing.JFrame {
             System.err.println("" + e.getMessage());
         }
     }
-    private boolean suppressEvent = false;
 
     private void applyLanguage() {
         String language;
         String country;
         Locale locale;
-        int lang = cmbChooseLanguage.getSelectedIndex();
 
         try {
-            switch (lang) {
-                case 0:
-                    language = "en";
-                    country = "US";
-                    break;
-                case 1:
-                    language = "id";
-                    country = "ID";
-                    break;
-                default:
-                    language = "en";
-                    country = "US";
-                    break;
+            // ✅ Ambil dari SessionManager jika tersedia
+            String savedLang = SessionManager.getLanguage();
+            int lang = cmbChooseLanguage.getSelectedIndex();
+
+            // Jika belum ada pilihan (pertama kali), ambil dari Session
+            if (lang == -1) {
+                language = savedLang;
+                country = language.equals("id") ? "ID" : "US";
+            } else {
+                switch (lang) {
+                    case 0:
+                        language = "en";
+                        country = "US";
+                        break;
+                    case 1:
+                        language = "id";
+                        country = "ID";
+                        break;
+                    default:
+                        language = "en";
+                        country = "US";
+                        break;
+                }
+                // ✅ Simpan bahasa global di SessionManager
+                SessionManager.setLanguage(language);
             }
 
             locale = new Locale(language, country);
             ResourceBundle rb = ResourceBundle.getBundle("localization/Bundle", locale);
 
             // Atur ulang label UI
-            lblChooseLanguage.setText(rb.getString("Login.lblChooseLanguage.text"));
-            lblUsername.setText(rb.getString("Login.lblUsername.text"));
-            lblPassword.setText(rb.getString("Login.lblPassword.text"));
-            jlogin.setText(rb.getString("Login.jlogin.text"));
-            jmasuk.setText(rb.getString("Login.jmasuk.text"));
-            jdaftar.setText(rb.getString("Login.jdaftar.text"));
+            lblChooseLanguage.setText(rb.getString("lblChooseLanguage.text"));
+            lblUsername.setText(rb.getString("lblUsername.text"));
+            lblPassword.setText(rb.getString("lblPassword.text"));
+            jlogin.setText(rb.getString("jlogin.text"));
+            jmasuk.setText(rb.getString("jmasuk.text"));
+            jdaftar.setText(rb.getString("jdaftar.text"));
             setTitle(rb.getString("Login.title"));
-            tmplsandi.setText(rb.getString("Login.tmplsandi.text"));
+            tmplsandi.setText(rb.getString("tmplsandi.text"));
 
-            // Isi ulang item combo box role
+            // Combo box role
             cmbrole.removeAllItems();
-            cmbrole.addItem("Owner");
-            cmbrole.addItem("Painter");
-            cmbrole.addItem("Guest");
+            cmbrole.addItem(rb.getString("cmbrole.text.1"));
+            cmbrole.addItem(rb.getString("cmbrole.text.2"));
+            cmbrole.addItem(rb.getString("cmbrole.text.3"));
             cmbrole.setSelectedIndex(0);
 
-            // Perbarui pilihan bahasa tanpa suppressEvent
-            int langCount = cmbChooseLanguage.getItemCount();
+            // Combo box bahasa
             cmbChooseLanguage.removeAllItems();
-            for (int i = 0; i < 2; i++) {
-                cmbChooseLanguage.addItem(rb.getString("cmbChooseLanguage." + i));
-            }
-            cmbChooseLanguage.setSelectedIndex(lang);
+            cmbChooseLanguage.addItem(rb.getString("cmbChooseLanguage.0")); // English
+            cmbChooseLanguage.addItem(rb.getString("cmbChooseLanguage.1")); // Indonesian
+            cmbChooseLanguage.setSelectedIndex(language.equals("id") ? 1 : 0);
 
         } catch (MissingResourceException e) {
             System.err.println("Missing key: " + e.getKey());
@@ -319,8 +342,6 @@ public class login extends javax.swing.JFrame {
     }//GEN-LAST:event_txtpasswordActionPerformed
 
     private void jmasukActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jmasukActionPerformed
-        LoginNow();
-
         String username = txtusername.getText().trim();
         String password = new String(txtpassword.getPassword()).trim();
 
@@ -334,6 +355,7 @@ public class login extends javax.swing.JFrame {
 
         LoginNow();
 
+
     }//GEN-LAST:event_jmasukActionPerformed
 
     private void jdaftarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jdaftarActionPerformed
@@ -342,9 +364,7 @@ public class login extends javax.swing.JFrame {
     }//GEN-LAST:event_jdaftarActionPerformed
 
     private void cmbChooseLanguageActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbChooseLanguageActionPerformed
-        if (!suppressEvent) {
-            applyLanguage();
-        }
+        applyLanguage();
     }//GEN-LAST:event_cmbChooseLanguageActionPerformed
 
     /**
@@ -441,13 +461,20 @@ public class login extends javax.swing.JFrame {
 
             if (rs.next()) {
                 String hashedFromDB = rs.getString("password");
+                String nama = rs.getString("nama"); // ✅ ambil nama dari DB
                 String hashedInput = object.HashUtil.hashPassword(password);
 
                 if (hashedFromDB.equals(hashedInput)) {
                     JOptionPane.showMessageDialog(this, bundle.getString("success.login"));
 
-                    // Simpan data login ke file
-                    object.User u = new object.User(username, hashedFromDB, role);
+                    // Buat objek User sesuai dengan constructor
+                    object.User u = new object.User(username, hashedFromDB, role, nama);
+
+                    object.UserSerializer.serialize(u);
+
+                    SessionManager.set(u);
+
+                    // Simpan data user ke file
                     object.UserSerializer.serialize(u);
 
                     this.setVisible(false); // Tutup form login
@@ -455,18 +482,18 @@ public class login extends javax.swing.JFrame {
                     // Buka halaman sesuai role
                     switch (role) {
                         case "pemilik" ->
-                            new ui.dashboard().setVisible(true);
+                            new ui.dashboard(u).setVisible(true);
                         case "pelukis" ->
-                            new ui.gallery_pelukis().setVisible(true);
+                            new ui.gallery_pelukis(u).setVisible(true);
                         case "pengunjung" ->
-                            new ui.gallery_pengunjung().setVisible(true);
+                            new ui.gallery_pengunjung(u).setVisible(true);
                         default ->
                             JOptionPane.showMessageDialog(this, "Role tidak dikenali!");
                     }
-
                 } else {
                     JOptionPane.showMessageDialog(this, bundle.getString("error.login"));
                 }
+
             } else {
                 JOptionPane.showMessageDialog(this, bundle.getString("error.login"));
             }
@@ -474,6 +501,18 @@ public class login extends javax.swing.JFrame {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Gagal: " + e.getMessage());
         }
+
+        try (Connection conn = config.configDB()) {
+            String sql = "INSERT INTO kunjungan (user_id) "
+                    + "SELECT id FROM users WHERE username = ?";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            pst.setString(1, username);
+            pst.executeUpdate();
+            pst.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal menyimpan kunjungan: " + e.getMessage());
+        }
+
     }
 
 }
